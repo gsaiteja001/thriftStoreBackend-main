@@ -8,7 +8,6 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid'); 
 
 
-
 // Fetch a specific address by addressId
 router.get('/address/:addressId', async (req, res) => {
   const { addressId } = req.params;
@@ -596,6 +595,56 @@ router.post('/cart/:cart_id/removeexistingitem', async (req, res) => {
 
 
 
+router.post('/payment/record', async (req, res) => {
+  const { order_id, item_id, vendor_id, payment_amount, payment_method = 'card', status = 'paid' } = req.body;
+
+  if (!order_id || !item_id || !vendor_id || !payment_amount) {
+    return res.status(400).json({ message: 'Missing required fields.' });
+  }
+
+  try {
+    const payment_id = Math.floor(Math.random() * 1000000000);
+    const payment_date = new Date().toISOString();
+    const payment_type = 'credit';
+
+    // Step 1: Get the last balance for this vendor
+    const [lastPayment] = await db.query(
+      'SELECT total_balance_vendor FROM payment WHERE vendor_id = ? ORDER BY payment_date DESC LIMIT 1',
+      [vendor_id]
+    );
+
+    const previous_balance = lastPayment.length > 0 ? parseFloat(lastPayment[0].total_balance_vendor) : 0;
+    const new_balance = previous_balance + parseFloat(payment_amount);
+
+    // Step 2: Insert new payment
+    await db.query(
+      `INSERT INTO payment (
+        payment_id, order_id, payment_amount, payment_date, 
+        payment_method, status, payment_type, total_balance_vendor, vendor_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        payment_id, order_id, payment_amount, payment_date,
+        payment_method, status, payment_type, new_balance, vendor_id
+      ]
+    );
+
+    res.status(201).json({
+      message: 'Payment recorded successfully.',
+      payment_id,
+      vendor_id,
+      total_balance_vendor: new_balance
+    });
+
+  } catch (error) {
+    console.error('Error recording payment:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+
+
+
 
 // Fetch items by vendor_id
 router.get('/vendor/:vendor_id/items', async (req, res) => {
@@ -697,57 +746,6 @@ router.get('/cart/:cart_id/items', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-
-
-
-
-router.post('/payment/record', async (req, res) => {
-  const { order_id, item_id, vendor_id, payment_amount, payment_method = 'COD', status = 'paid' } = req.body;
-
-  if (!order_id || !item_id || !vendor_id || !payment_amount) {
-    return res.status(400).json({ message: 'Missing required fields.' });
-  }
-
-  try {
-    const payment_id = Math.floor(Math.random() * 1000000000);
-    const payment_date = new Date().toISOString();
-    const payment_type = 'credit';
-
-    // Step 1: Get the last balance for this vendor
-    const [lastPayment] = await db.query(
-      'SELECT total_balance_vendor FROM payment WHERE vendor_id = ? ORDER BY payment_date DESC LIMIT 1',
-      [vendor_id]
-    );
-
-    const previous_balance = lastPayment.length > 0 ? parseFloat(lastPayment[0].total_balance_vendor) : 0;
-    const new_balance = previous_balance + parseFloat(payment_amount);
-
-    // Step 2: Insert new payment
-    await db.query(
-      `INSERT INTO payment (
-        payment_id, order_id, payment_amount, payment_date, 
-        payment_method, status, payment_type, total_balance_vendor, vendor_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        payment_id, order_id, payment_amount, payment_date,
-        payment_method, status, payment_type, new_balance, vendor_id
-      ]
-    );
-
-    res.status(201).json({
-      message: 'Payment recorded successfully.',
-      payment_id,
-      vendor_id,
-      total_balance_vendor: new_balance
-    });
-
-  } catch (error) {
-    console.error('Error recording payment:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
 
 
 

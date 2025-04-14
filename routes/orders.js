@@ -77,8 +77,6 @@ router.put('/:order_id', async (req, res) => {
 });
 
 
-
-
 router.post('/shipping', async (req, res) => {
   const { order_id, shipping_method, shipping_cost, shipping_date, tracking_number, delivery_date, shipping_status } = req.body;
   
