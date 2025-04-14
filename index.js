@@ -19,9 +19,18 @@ app.use('/api/vendor-categories', sellerCategoriesRouter);
 app.use('/api/Stock-transactions', stockTransactionsRouter);
 app.use('/api/orders', ordersRouter);
 
+const productImage = require('./productImageUpload')
+app.use('/upload_product_image',productImage);
+
+
 app.use('/api/item', itemsrouter);
 // Routes
 app.use('/api', routes);
+
+
+const verifyRoutes = require('./verifyRoute');
+app.use('/twilio', verifyRoutes);
+
 
 // Health check route
 app.get('/health', (req, res) => {

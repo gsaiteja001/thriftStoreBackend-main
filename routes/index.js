@@ -1120,6 +1120,81 @@ router.post('/login', async (req, res) => {
 
 
 
+// POST /api/google-auth
+router.post('/google-auth', async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    const phone = req.body.phone || '';
+    const address = req.body.address || '';
+    const registration_date = new Date().toISOString();
+
+    // Check existing user
+    const [existingCustomer] = await db.query(
+      'SELECT * FROM customer WHERE email = ?',
+      [email]
+    );
+
+    if (existingCustomer.length > 0) {
+      // Existing user - login
+      const customer = existingCustomer[0];
+      const token = generateToken(customer.id);
+      return res.json({
+        token,
+        customer_id: customer.customer_id,
+        cartId: customer.cart_id,
+        wishlistId: customer.wishList_id,
+        addressID1: customer.addressID1,
+        addressID2: customer.addressID2,
+        addressID3: customer.addressID3,
+        addressID4: customer.addressID4
+      });
+    }
+
+    // New user - signup
+    const generateRandomId = () => `${Math.random().toString(36).substring(2)}${Date.now().toString(36)}`;
+    const generateRandomAddressId = () => Math.floor(Math.random() * 1000000000);
+
+    const customer_id = generateRandomId();
+    const cart_id = generateRandomId();
+    const wishlist_id = generateRandomId();
+    const addressID1 = generateRandomAddressId();
+    const addressID2 = generateRandomAddressId();
+    const addressID3 = generateRandomAddressId();
+    const addressID4 = generateRandomAddressId();
+
+    // Generate random password for Google users
+    const randomPassword = Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+    await db.query(`
+      INSERT INTO customer (
+        customer_id, name, email, phone, address,
+        registration_date, password, cart_id, wishList_id,
+        addressID1, addressID2, addressID3, addressID4
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      customer_id, name, email, phone, address,
+      registration_date, hashedPassword, cart_id, wishlist_id,
+      addressID1, addressID2, addressID3, addressID4
+    ]);
+
+    const token = generateToken(customer_id);
+    res.status(201).json({
+      token,
+      customer_id,
+      cartId: cart_id,
+      wishlistId: wishlist_id,
+      addressID1,
+      addressID2,
+      addressID3,
+      addressID4
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 
 // Create routes for all tables

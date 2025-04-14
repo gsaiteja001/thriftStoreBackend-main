@@ -112,30 +112,42 @@ router.post('/shipping', async (req, res) => {
 });
 
 
+
+
 router.post('/cancel', async (req, res) => {
   const { return_reason, order_id } = req.body;
-  
+
   // Validate required fields.
   if (!return_reason || !order_id) {
     return res.status(400).json({ message: "return_reason and order_id are required." });
   }
-  
+
   // Generate IDs.
   const return_id = generateRandomId();
   const refund_id = generateRandomId();
-
-  // Current date for return request.
   const request_date = new Date().toISOString();
-  
+
   try {
-    // Insert into returnrequest table.
+    // Step 1: Update order_status to 'approve_cancel'
+    const [updateResult] = await db.query(
+      `UPDATE orders SET order_status = ? WHERE order_id = ?`,
+      ['approve_cancel', order_id]
+    );
+
+    if (updateResult.affectedRows === 0) {
+      return res.status(404).json({ message: "Order not found or could not update order_status." });
+    }
+
+    // Step 2: Insert into returnrequest table
     await db.query(
       `INSERT INTO returnrequest (return_id, order_id, return_reason, status, request_date)
        VALUES (?, ?, ?, ?, ?)`,
       [return_id, order_id, return_reason, '', request_date]
     );
-    
+
+    // Send success response
     res.status(201).json({
+      message: "Order cancellation initiated successfully.",
       returnrequest: {
         return_id,
         order_id,
@@ -145,7 +157,7 @@ router.post('/cancel', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("Database error:", error);
+    console.error("Database error during cancellation:", error);
     res.status(500).json({ error: error.message });
   }
 });
