@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const routes = require('./routes/index');
 
 const app = express();
 const PORT = 3000;
@@ -14,6 +13,7 @@ const sellerCategoriesRouter = require('./routes/sellerCategories');
 const stockTransactionsRouter = require('./routes/stockTransaction');
 const ordersRouter = require('./routes/orders');
 const itemsrouter =require('./routes/items');
+const routes = require('./routes/index');
 
 app.use('/api/vendor-categories', sellerCategoriesRouter);
 app.use('/api/Stock-transactions', stockTransactionsRouter);
