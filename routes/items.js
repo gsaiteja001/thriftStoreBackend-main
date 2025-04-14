@@ -204,7 +204,7 @@ router.get('/:item_id', async (req, res) => {
 
   try {
     // SQL query to fetch the item by item_id
-    const [item] = await db.query('SELECT item_id,categoryId, vendor_id, name, brand, size, color, item_condition, cost_price, selling_price, stock_quantity, imageURL, description, reviews FROM item WHERE item_id = ?', [item_id]);
+    const [item] = await db.query('SELECT item_id,categoryId, vendor_id, name, brand, size, color, item_condition, cost_price, selling_price, stock_quantity, imageURL, description FROM item WHERE item_id = ?', [item_id]);
 
     if (item.length === 0) {
       return res.status(404).json({ message: 'Item not found' });

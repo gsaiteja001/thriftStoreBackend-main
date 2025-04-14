@@ -6,6 +6,66 @@ const db = require('../config/database');
 // Utility function to generate a random ID (for order_id or shipping_id)
 const generateRandomId = () => Math.floor(Math.random() * 1000000000);
 
+// Add this authentication middleware to your order routes
+const authenticate = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(403).json({ error: 'Authentication required' });
+
+  try {
+    const decoded = jwt.verify(token, '244139saiTeja');
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(403).json({ error: 'Invalid token' });
+  }
+};
+
+
+
+
+// Create a new order
+router.post('/order', async (req, res) => {
+  const { customer_id, order_date, order_status, payment_status, shipping_address, shipping_id, item_id, item_quantity, item_price } = req.body;
+
+  if (!customer_id || !order_date || !item_id || !item_quantity || !item_price) {
+    return res.status(400).json({ message: 'All required fields (customer_id, order_date, item_id, item_quantity, item_price) are required' });
+  }
+
+  const generateRandomId = () => {
+    return Math.floor(Math.random() * 1000000000); 
+  };
+  
+  const order_id = generateRandomId();
+
+  const shipping_address_str = typeof shipping_address === 'object' ? JSON.stringify(shipping_address) : shipping_address;
+
+
+  try {
+    // Insert new order into the 'orders' table
+    const [result] = await db.query(
+      'INSERT INTO orders (order_id, customer_id, order_date, order_status, payment_status, shipping_address, shipping_id, item_id, item_quantity, item_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,?)',
+      [order_id, customer_id, order_date, order_status || 'placed', payment_status || 'pending', shipping_address_str, shipping_id, item_id, item_quantity, item_price]
+    );
+
+    res.status(201).json({
+      order_id: order_id,
+      customer_id,
+      order_date,
+      order_status: order_status || 'placed',
+      payment_status: payment_status || 'pending',
+      shipping_address_str,
+      shipping_id,
+      item_id,
+      item_quantity,
+      item_price
+    });
+  } catch (error) {
+    console.error('Error creating order:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 
 
 router.get('/vendor/:vendor_id', async (req, res) => {
